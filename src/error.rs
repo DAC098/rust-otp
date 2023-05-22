@@ -1,6 +1,8 @@
 #[derive(Debug)]
 pub enum Error {
-    InvalidKeyLength
+    /// potential error generated when creating hmac's
+    InvalidKeyLength,
+    UnixEpochError,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -10,6 +12,9 @@ impl std::fmt::Display for Error {
         match self {
             Error::InvalidKeyLength => write!(
                 f, "invalid key length"
+            ),
+            Error::UnixEpochError => write!(
+                f, "error generating unix epoch"
             )
         }
     }

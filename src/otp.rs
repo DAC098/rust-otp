@@ -138,8 +138,6 @@ pub enum VerifyResult {
     InvalidCharacters,
     /// code is not the required length
     InvalidLength,
-    /// potential issues when getting unix epoch integers
-    UnixEpochError,
 }
 
 /// settings for totp verification
@@ -167,34 +165,38 @@ pub struct TotpSettings {
 /// length is equal to the specified digits. after that the current timestamp
 /// is checked first, then window before, then window after. if an overflow
 /// happens when creating the window timpestamps a UnixEpocError is returned.
-pub fn verify_totp_code(settings: &TotpSettings, code: String) -> VerifyResult {
+pub fn verify_totp_code<C>(settings: &TotpSettings, code: C) -> error::Result<VerifyResult>
+where
+    C: AsRef<str>
+{
+    let code_ref = code.as_ref();
     let mut len: u32 = 0;
 
-    for ch in code.chars() {
+    for ch in code_ref.chars() {
         if !ch.is_ascii_digit() {
-            return VerifyResult::InvalidCharacters;
+            return Ok(VerifyResult::InvalidCharacters);
         }
 
         len += 1;
     }
 
     if len != settings.digits {
-        return VerifyResult::InvalidLength;
+        return Ok(VerifyResult::InvalidLength);
     }
 
     let now = if let Some(given) = settings.now {
         given.clone()
     } else {
         let Some(system) = time::unix_epoch_sec() else {
-            return VerifyResult::UnixEpochError;
+            return Err(error::Error::UnixEpochError);
         };
 
         system
     };
 
     // check now first
-    if totp(&settings.algo, &settings.secret, settings.digits, settings.step, now) == code {
-        return VerifyResult::Valid;
+    if try_totp(&settings.algo, &settings.secret, settings.digits, settings.step, now)? == code_ref {
+        return Ok(VerifyResult::Valid);
     }
 
     // check before now
@@ -202,11 +204,11 @@ pub fn verify_totp_code(settings: &TotpSettings, code: String) -> VerifyResult {
         let value = settings.step * (win as u64);
 
         let Some(time) = now.checked_sub(value) else {
-            return VerifyResult::UnixEpochError;
+            return Err(error::Error::UnixEpochError);
         };
 
-        if totp(&settings.algo, &settings.secret, settings.digits, settings.step, time) == code {
-            return VerifyResult::Valid;
+        if try_totp(&settings.algo, &settings.secret, settings.digits, settings.step, time)? == code_ref {
+            return Ok(VerifyResult::Valid);
         }
     }
 
@@ -215,15 +217,15 @@ pub fn verify_totp_code(settings: &TotpSettings, code: String) -> VerifyResult {
         let value = settings.step * (win as u64);
 
         let Some(time) = now.checked_add(value) else {
-            return VerifyResult::UnixEpochError;
+            return Err(error::Error::UnixEpochError);
         };
 
-        if totp(&settings.algo, &settings.secret, settings.digits, settings.step, time) == code {
-            return VerifyResult::Valid;
+        if try_totp(&settings.algo, &settings.secret, settings.digits, settings.step, time)? == code_ref {
+            return Ok(VerifyResult::Valid);
         }
     }
 
-    VerifyResult::Invalid
+    Ok(VerifyResult::Invalid)
 }
 
 #[cfg(test)]
