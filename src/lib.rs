@@ -15,6 +15,7 @@ pub fn unix_epoch_sec() -> Option<u64> {
 pub struct UnixTimestampError;
 
 /// available hashs for generating codes
+#[derive(Debug)]
 pub enum Algo {
     SHA1,
     SHA256,
@@ -108,6 +109,7 @@ where
 }
 
 /// result from totp verification
+#[derive(Debug)]
 pub enum VerifyResult {
     /// provided code is valid
     Valid,
@@ -120,6 +122,7 @@ pub enum VerifyResult {
 }
 
 /// settings for totp verification
+#[derive(Debug)]
 pub struct TotpSettings {
     /// desired algorithm to use. see [`Algo`]
     pub algo: Algo,
@@ -261,22 +264,31 @@ mod test {
         let secret = b"12345678901234567890";
 
         let pairs = vec![
-            ("94287082", 59),
-            ("07081804", 1111111109),
-            ("14050471", 1111111111),
-            ("89005924", 1234567890),
-            ("69279037", 2000000000),
-            ("65353130", 20000000000),
+            ("94287082", 59, true),
+            ("07081804", 1111111109, true),
+            ("14050471", 1111111111, true),
+            ("89005924", 1234567890, true),
+            ("69279037", 2000000000, true),
+            ("65353130", 20000000000, true),
+            ("00000000", 1, false),
         ];
 
-        for (expected, time) in pairs {
+        for (expected, time, valid) in pairs {
             let check = totp(&Algo::SHA1, secret, DEFAULT_DIGITS, DEFAULT_STEP, time);
 
-            assert_eq!(
-                check.as_str(),
-                expected,
-                "time: {time} check: {check} expected: {expected}",
-            );
+            if valid {
+                assert_eq!(
+                    check.as_str(),
+                    expected,
+                    "time: {time} check: {check} expected: {expected}",
+                );
+            } else {
+                assert_ne!(
+                    check.as_str(),
+                    expected,
+                    "time: {time} check: {check} expected: {expected}",
+                );
+            }
         }
     }
 
@@ -285,22 +297,31 @@ mod test {
         let secret = b"12345678901234567890123456789012";
 
         let pairs = vec![
-            ("46119246", 59),
-            ("68084774", 1111111109),
-            ("67062674", 1111111111),
-            ("91819424", 1234567890),
-            ("90698825", 2000000000),
-            ("77737706", 20000000000),
+            ("46119246", 59, true),
+            ("68084774", 1111111109, true),
+            ("67062674", 1111111111, true),
+            ("91819424", 1234567890, true),
+            ("90698825", 2000000000, true),
+            ("77737706", 20000000000, true),
+            ("00000000", 1, false),
         ];
 
-        for (expected, time) in pairs {
+        for (expected, time, valid) in pairs {
             let check = totp(&Algo::SHA256, secret, DEFAULT_DIGITS, DEFAULT_STEP, time);
 
-            assert_eq!(
-                check.as_str(),
-                expected,
-                "time: {time} check: {check} expected: {expected}",
-            );
+            if valid {
+                assert_eq!(
+                    check.as_str(),
+                    expected,
+                    "time: {time} check: {check} expected: {expected}",
+                );
+            } else {
+                assert_ne!(
+                    check.as_str(),
+                    expected,
+                    "time: {time} check: {check} expected: {expected}",
+                );
+            }
         }
     }
 
@@ -309,22 +330,31 @@ mod test {
         let secret = b"1234567890123456789012345678901234567890123456789012345678901234";
 
         let pairs = vec![
-            ("90693936", 59),
-            ("25091201", 1111111109),
-            ("99943326", 1111111111),
-            ("93441116", 1234567890),
-            ("38618901", 2000000000),
-            ("47863826", 20000000000),
+            ("90693936", 59, true),
+            ("25091201", 1111111109, true),
+            ("99943326", 1111111111, true),
+            ("93441116", 1234567890, true),
+            ("38618901", 2000000000, true),
+            ("47863826", 20000000000, true),
+            ("00000000", 1, false),
         ];
 
-        for (expected, time) in pairs {
+        for (expected, time, valid) in pairs {
             let check = totp(&Algo::SHA512, secret, DEFAULT_DIGITS, DEFAULT_STEP, time);
 
-            assert_eq!(
-                check.as_str(),
-                expected,
-                "time: {time} check: {check} expected: {expected}",
-            );
+            if valid {
+                assert_eq!(
+                    check.as_str(),
+                    expected,
+                    "time: {time} check: {check} expected: {expected}",
+                );
+            } else {
+                assert_ne!(
+                    check.as_str(),
+                    expected,
+                    "time: {time} check: {check} expected: {expected}",
+                );
+            }
         }
     }
 }
